@@ -107,7 +107,6 @@ function testScan(){
 }
 
 function testUserInfo(){
-  // 需要 agentConfig 二次注入才能获取用户信息
   wx.invoke('getCurExternalContact',{}, res=>{
     log('\n👤 外部联系人:')
     log(JSON.stringify(res))
