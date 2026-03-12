@@ -1,1 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>test</title></head>
+<body>
+<p id="res">loading...</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script>
+const SECRET = "19DDD1FBDFF065D3A4DA777D2D7A81EC";
+const CID    = "508";
+const ts     = Date.now().toString();
+const sign   = CryptoJS.MD5("cid=" + CID + "&param={}" + SECRET + ts).toString();
 
+fetch("https://mgw.yiche.com/site_api/current/api/logout", {
+  method:      "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json;charset=UTF-8",
+    "X-Platform":   "pc",
+    "X-City-Id":    "201",
+    "X-Timestamp":  ts,
+    "X-Sign":       sign,
+    "Cid":          CID
+  },
+  body: JSON.stringify({cid: CID, param: {}})
+})
+.then(r => r.json())
+.then(d => {
+  document.getElementById("res").textContent = JSON.stringify(d);
+  document.getElementById("res").style.color = d.status === "1" ? "red" : "black";
+})
+.catch(e => {
+  document.getElementById("res").textContent = "ERROR: " + e;
+});
+</script>
+</body>
+</html>
