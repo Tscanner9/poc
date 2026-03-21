@@ -25,12 +25,15 @@
         timestamp: d.timestamp,
         nonceStr: d.nonceStr,
         signature: d.signature,
-        jsApiList: [
-          'updateAppMessageShareData',
-          'onMenuShareTimeline',
-          'getLocation',
-          'getNetworkType'
-        ]
+       jsApiList: [
+                 'getNetworkType',        // ✅ 已确认
+                 'closeWindow',           // 关闭网页
+                 'scanQRCode',            // 调起扫码
+                 'chooseImage',           // 调起相册/摄像头
+                 'getLocalImgData',       // 获取本地图片
+                 'openLocation',          // 打开地图（不需要域名校验）
+                 'wx.miniProgram.navigateTo'  // 跳转小程序
+            ]
       });
 
       wx.ready(function() {
