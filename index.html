@@ -27,7 +27,7 @@
     wx.ready(function() {
         console.log('✅ wx.config 校验通过，签名在 GitHub Pages 域上生效');
         // 可选：进一步调用高危接口作为危害证明
-        // wx.getLocation({ type: 'wgs84', success: res => console.log(res) });
+        wx.getLocation({ type: 'wgs84', success: res => console.log(res) });
     });
 
     wx.error(function(res) {
