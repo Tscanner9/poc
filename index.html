@@ -11,16 +11,16 @@
 <p>当前实际URL: <code id="currentUrl"></code></p>
 <script>
     // 将你在请求接口时使用的 url 参数值硬编码在这里，方便肉眼比对
-    const SIGNED_URL = "https://yourname.github.io/jsapi-poc/";
+    const SIGNED_URL = "https://tscanner9.github.io/poc/";
     document.getElementById('signedUrl').textContent = SIGNED_URL;
     document.getElementById('currentUrl').textContent = location.href.split('#')[0];
 
     wx.config({
-        debug: true, // 必须开启，错误信息会以弹窗形式直接显示
-        appId: '<从响应中获取的 appId>',
-        timestamp: <从响应中获取的 timestamp>, // 数字，不要加引号
-        nonceStr: '<从响应中获取的 nonceStr>',
-        signature: '<从响应中获取的 signature>',
+        debug: true, // 必须开启，结果会以弹窗形式显示
+        appId: 'wx274a8b4b49dba1e4',
+        timestamp: 1795134468, // 数字，不加引号
+        nonceStr: '2a850a46-9f0d-40bc-b11c-c7fe0e04e759',
+        signature: 'da9adbe274c3dc9d8a0cc989e51723d924861df8',
         jsApiList: ['getLocation', 'chooseImage', 'scanQRCode']
     });
 
