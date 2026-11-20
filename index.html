@@ -2,36 +2,93 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSAPI Signature PoC</title>
     <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 15px; line-height: 1.5; }
+        .box { background: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 15px; word-break: break-all; }
+        #log-panel { background: #1e1e1e; color: #00ff00; padding: 10px; font-family: monospace; white-space: pre-wrap; border-radius: 5px; min-height: 150px; font-size: 14px; }
+        .error { color: #ff5555 !important; }
+        .success { color: #50fa7b !important; }
+    </style>
 </head>
 <body>
-<h1>JS-SDK Signature Test</h1>
-<p>签名时使用的URL: <code id="signedUrl"></code></p>
-<p>当前实际URL: <code id="currentUrl"></code></p>
-<script>
-    // 将你在请求接口时使用的 url 参数值硬编码在这里，方便肉眼比对
-    const SIGNED_URL = "https://tscanner9.github.io/poc/";
-    document.getElementById('signedUrl').textContent = SIGNED_URL;
-    document.getElementById('currentUrl').textContent = location.href.split('#')[0];
+    <h3>JS-SDK Signature PoC</h3>
+    
+    <div class="box">
+        <b>签名时使用的URL:</b><br>
+        <span id="signedUrl"></span>
+    </div>
+    
+    <div class="box">
+        <b>当前页面实际URL:</b><br>
+        <span id="currentUrl"></span>
+    </div>
 
+    <h4>实时运行日志 (可直接截图):</h4>
+    <div id="log-panel"></div>
+
+<script>
+    // 1. 初始化日志显示面板
+    const logPanel = document.getElementById('log-panel');
+    function showLog(msg, isError = false, isSuccess = false) {
+        const time = new Date().toLocaleTimeString();
+        const span = document.createElement('div');
+        span.innerText = `[${time}] ${msg}`;
+        if (isError) span.className = 'error';
+        if (isSuccess) span.className = 'success';
+        logPanel.appendChild(span);
+    }
+
+    // 2. URL 比对逻辑
+    // ⚠️ 注意：这里必须全小写，且与你获取签名时传的 url 完全一致
+    const SIGNED_URL = "https://tscanner9.github.io/poc/"; 
+    const CURRENT_URL = location.href.split('#')[0];
+
+    document.getElementById('signedUrl').textContent = SIGNED_URL;
+    document.getElementById('currentUrl').textContent = CURRENT_URL;
+
+    if (SIGNED_URL === CURRENT_URL) {
+        showLog("✅ URL 匹配完全一致，开始 wx.config 校验...", false, true);
+    } else {
+        showLog("❌ 警告：签名URL与当前URL不一致，微信校验必定失败！", true);
+    }
+
+    // 3. wx.config 配置
+    showLog("正在执行 wx.config...");
+    
     wx.config({
-        debug: true, // 必须开启，结果会以弹窗形式显示
-        appId: 'wx274a8b4b49dba1e4',
-        timestamp: 1795134872, // 数字，不加引号
-        nonceStr: '2817d045-5d5e-4a7c-b9f2-fadeb4aa9352',
-        signature: 'a7d6ddf49eea586e5c048698a0b7b42113c9397a',
+        debug: true, // 这里开启 debug，微信本身也会弹窗，双重确认
+        appId: 'wx274a8b4b49dba1e4', // 替换为你最新获取的 appId
+        timestamp: 1795134468,       // 替换为你最新获取的 timestamp (数字)
+        nonceStr: '2a850a46-9f0d-40bc-b11c-c7fe0e04e759', // 替换为你最新获取的 nonceStr
+        signature: 'da9adbe274c3dc9d8a0cc989e51723d924861df8', // 替换为你最新获取的 signature
         jsApiList: ['getLocation', 'chooseImage', 'scanQRCode']
     });
 
-    wx.ready(function() {
-        console.log('✅ wx.config 校验通过，签名在 GitHub Pages 域上生效');
-        // 可选：进一步调用高危接口作为危害证明
-        wx.getLocation({ type: 'wgs84', success: res => console.log(res) });
+    // 4. 成功回调
+    wx.ready(function () {
+        showLog("✅ wx.config 校验通过！", false, true);
+        
+        // 进一步验证：调用定位接口，将结果显示在屏幕上
+        showLog("正在尝试调用 wx.getLocation 获取位置...");
+        wx.getLocation({
+            type: 'wgs84',
+            success: function (res) {
+                showLog("✅ 获取位置成功！结果如下：", false, true);
+                showLog(JSON.stringify(res));
+            },
+            fail: function (res) {
+                showLog("❌ 获取位置失败，返回：" + JSON.stringify(res), true);
+            }
+        });
     });
 
-    wx.error(function(res) {
-        console.error('❌ wx.config 校验失败', res);
+    // 5. 失败回调
+    wx.error(function (res) {
+        showLog("❌ wx.config 校验失败！错误信息：" + JSON.stringify(res), true);
+        showLog("请重点检查：1. URL大小写/末尾斜杠是否一致； 2. 签名是否已过期； 3. 参数是否复制完整。", true);
     });
 </script>
 </body>
